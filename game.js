@@ -12,7 +12,7 @@ const CFG = {
   MAP_H: 40,
   VIEW_W: 25,
   VIEW_H: 19,
-  FLOOR_COUNT: 8,
+  FLOOR_COUNT: 10,
   ROOMS_MIN: 7,
   ROOMS_MAX: 11,
   FOV_RANGE: 7,
@@ -98,11 +98,21 @@ const ENEMY_TEMPLATES = {
 };
 
 const BOSSES = [
-  { floor: 2, name: '华雄', ch: '雄', hp: 140, atk: 22, def: 14, spd: 7, xp: 100, color: '#ff4400' },
-  { floor: 4, name: '颜良文丑', ch: '颜', hp: 200, atk: 30, def: 18, spd: 9, xp: 180, color: '#ff5500' },
-  { floor: 6, name: '典韦', ch: '韦', hp: 280, atk: 36, def: 24, spd: 11, xp: 280, color: '#ff3300' },
-  { floor: 8, name: '吕布', ch: '吕', hp: 420, atk: 48, def: 28, spd: 15, xp: 500, color: '#ff0000' },
+  { floor: 2,  name: '华雄',     ch: '雄', hp: 140, atk: 22, def: 14, spd: 7,  xp: 100, color: '#ff4400', slot: 'headwear' },
+  { floor: 4,  name: '颜良文丑', ch: '颜', hp: 210, atk: 30, def: 18, spd: 9,  xp: 180, color: '#ff5500', slot: 'armor' },
+  { floor: 6,  name: '典韦',     ch: '韦', hp: 290, atk: 38, def: 26, spd: 11, xp: 290, color: '#ff3300', slot: 'pants' },
+  { floor: 8,  name: '董卓',     ch: '董', hp: 360, atk: 42, def: 30, spd: 8,  xp: 380, color: '#990099', slot: 'mount' },
+  { floor: 10, name: '吕布',     ch: '吕', hp: 460, atk: 50, def: 32, spd: 16, xp: 550, color: '#ff0000', slot: 'weapon' },
 ];
+
+// Boss 专属掉落
+const BOSS_DROPS = {
+  headwear: { id: 'head_boss', name: '紫金雉尾冠', slot: 'headwear', stat: 'atk', value: 12, desc: '华雄金冠，勇冠三军', color: '#cc88ff' },
+  armor:    { id: 'armor_boss', name: '黄金锁子甲', slot: 'armor', stat: 'def', value: 14, desc: '颜良文丑双雄宝甲', color: '#ffcc00' },
+  pants:    { id: 'pants_boss', name: '虎皮战裙',   slot: 'pants', stat: 'spd', value: 6, desc: '典韦虎纹战裙，古之恶来', color: '#ff8800' },
+  mount:    { id: 'mount_boss', name: '赤兔马',     slot: 'mount', stat: 'spd', value: 7, desc: '董卓千里神驹，人中吕布马中赤兔', color: '#ff4444' },
+  weapon:   { id: 'weapon_boss', name: '方天画戟',  slot: 'weapon', stat: 'atk', value: 22, desc: '吕布天下无双之神兵', color: '#ff2222' },
+};
 
 // =============================================
 // ITEM DEFINITIONS
@@ -117,17 +127,27 @@ const ITEMS = {
     { id: 'spd_pill', name: '迅捷丹', desc: '5回合内速度+5', type: 'buff_spd', value: 5, duration: 5, color: '#44dddd' },
   ],
   equipment: [
+    // 头饰
+    { id: 'head1', name: '纶巾', slot: 'headwear', stat: 'def', value: 3, desc: '诸葛亮常戴之巾', color: '#aaaaff' },
+    { id: 'head2', name: '铁盔', slot: 'headwear', stat: 'def', value: 5, desc: '普通武将头盔', color: '#888888' },
+    { id: 'head3', name: '凤翅盔', slot: 'headwear', stat: 'atk', value: 5, desc: '精良战盔', color: '#ffcc88' },
+    // 衣服
+    { id: 'armor1', name: '八卦阵图', slot: 'armor', stat: 'def', value: 10, desc: '诸葛卧龙阵法护体', color: '#aa88ff' },
+    { id: 'armor2', name: '明光铠', slot: 'armor', stat: 'def', value: 8, desc: '精制铠甲', color: '#cccccc' },
+    { id: 'armor3', name: '鱼鳞甲', slot: 'armor', stat: 'def', value: 6, desc: '轻便战甲', color: '#88aacc' },
+    // 裤子
+    { id: 'pants1', name: '锦缎战裤', slot: 'pants', stat: 'spd', value: 3, desc: '名将战裤', color: '#ccaa88' },
+    { id: 'pants2', name: '铁护腿', slot: 'pants', stat: 'def', value: 4, desc: '精铁打造', color: '#999999' },
+    { id: 'pants3', name: '皮甲护胫', slot: 'pants', stat: 'spd', value: 2, desc: '轻便护胫', color: '#bbaa88' },
+    // 兵器
     { id: 'sword1', name: '雌雄双股剑', slot: 'weapon', stat: 'atk', value: 8, desc: '刘备双剑', color: '#cc88ff' },
     { id: 'sword2', name: '青龙偃月刀', slot: 'weapon', stat: 'atk', value: 15, desc: '关羽大刀', color: '#ff8800' },
     { id: 'sword3', name: '丈八蛇矛', slot: 'weapon', stat: 'atk', value: 12, desc: '张飞蛇矛', color: '#ffaa00' },
     { id: 'sword4', name: '青釭剑', slot: 'weapon', stat: 'atk', value: 10, desc: '曹操宝剑', color: '#aaaaff' },
-    { id: 'sword5', name: '方天画戟', slot: 'weapon', stat: 'atk', value: 20, desc: '吕布神兵', color: '#ff4444' },
-    { id: 'armor1', name: '八卦阵图', slot: 'armor', stat: 'def', value: 10, desc: '诸葛阵法', color: '#aa88ff' },
-    { id: 'armor2', name: '黄金甲', slot: 'armor', stat: 'def', value: 8, desc: '名将战甲', color: '#ffcc00' },
-    { id: 'armor3', name: '明光铠', slot: 'armor', stat: 'def', value: 12, desc: '精制铠甲', color: '#cccccc' },
-    { id: 'mount1', name: '赤兔马', slot: 'mount', stat: 'spd', value: 5, desc: '千里神驹', color: '#ff6644' },
-    { id: 'mount2', name: '的卢马', slot: 'mount', stat: 'spd', value: 3, desc: '救主神马', color: '#ffffff' },
-    { id: 'mount3', name: '绝影马', slot: 'mount', stat: 'spd', value: 4, desc: '曹操爱马', color: '#aaaaaa' },
+    // 坐骑
+    { id: 'mount1', name: '的卢马', slot: 'mount', stat: 'spd', value: 3, desc: '救主神马', color: '#ffffff' },
+    { id: 'mount2', name: '绝影马', slot: 'mount', stat: 'spd', value: 4, desc: '曹操爱马', color: '#aaaaaa' },
+    { id: 'mount3', name: '爪黄飞电', slot: 'mount', stat: 'spd', value: 5, desc: '曹操名马', color: '#ddcc88' },
   ],
 };
 
@@ -144,7 +164,7 @@ const state = {
   playerX: 0,
   playerY: 0,
   inventory: [],       // consumable items
-  equipment: { weapon: null, armor: null, mount: null },
+  equipment: { headwear: null, armor: null, pants: null, weapon: null, mount: null },
   buffs: [],           // active buffs { name, turns, atk?, def?, spd? }
   powerStrike: false,  // 关羽's next attack buff
   abilityCooldown: 0,
@@ -560,10 +580,13 @@ function getPlayerStats() {
   def += lvlBonus * 1;
   spd += lvlBonus * 1;
 
-  // Equipment bonus
-  if (state.equipment.weapon) atk += state.equipment.weapon.value;
-  if (state.equipment.armor) def += state.equipment.armor.value;
-  if (state.equipment.mount) spd += state.equipment.mount.value;
+  // Equipment bonus (5 slots)
+  for (const slot of Object.values(state.equipment)) {
+    if (!slot) continue;
+    if (slot.stat === 'atk') atk += slot.value;
+    if (slot.stat === 'def') def += slot.value;
+    if (slot.stat === 'spd') spd += slot.value;
+  }
 
   // Buffs
   for (const buff of state.buffs) {
@@ -680,23 +703,27 @@ function enemyDefeated(enemy) {
   checkLevelUp();
 
   // Item drop
-  const dropChance = enemy.elite ? 0.5 : 0.25;
-  const equipChance = enemy.elite ? 0.15 : 0.05;
-  const bossDrop = enemy.isBoss;
-
-  if (bossDrop || Math.random() < dropChance) {
-    let droppedItem;
-    if (bossDrop || Math.random() < equipChance) {
-      droppedItem = deepCopy(randPick(ITEMS.equipment));
-    } else {
-      droppedItem = deepCopy(randPick(ITEMS.consumables));
+  if (enemy.isBoss) {
+    // Boss 必掉专属装备
+    const bossDef = BOSSES.find(b => b.name === enemy.name);
+    if (bossDef && BOSS_DROPS[bossDef.slot]) {
+      const droppedItem = deepCopy(BOSS_DROPS[bossDef.slot]);
+      state.floorItems.push({ x: enemy._x, y: enemy._y, item: droppedItem });
+      addMessage(`📦 ${enemy.name}掉落专属装备：${droppedItem.name}！`, 'item');
     }
-    state.floorItems.push({
-      x: enemy._x,
-      y: enemy._y,
-      item: droppedItem,
-    });
-    addMessage(`📦 ${enemy.name}掉落：${droppedItem.name}！`, 'item');
+  } else {
+    const dropChance = enemy.elite ? 0.5 : 0.25;
+    const equipChance = enemy.elite ? 0.15 : 0.05;
+    if (Math.random() < dropChance) {
+      let droppedItem;
+      if (Math.random() < equipChance) {
+        droppedItem = deepCopy(randPick(ITEMS.equipment));
+      } else {
+        droppedItem = deepCopy(randPick(ITEMS.consumables));
+      }
+      state.floorItems.push({ x: enemy._x, y: enemy._y, item: droppedItem });
+      addMessage(`📦 ${enemy.name}掉落：${droppedItem.name}！`, 'item');
+    }
   }
 
   // Remove enemy
@@ -1045,9 +1072,9 @@ function generateFloor() {
 
   // Determine tier
   let tier;
-  if (state.floor <= 2) tier = 'tier1';
-  else if (state.floor <= 4) tier = 'tier2';
-  else if (state.floor <= 6) tier = 'tier3';
+  if (state.floor <= 3) tier = 'tier1';
+  else if (state.floor <= 5) tier = 'tier2';
+  else if (state.floor <= 7) tier = 'tier3';
   else tier = 'tier4';
 
   const templates = ENEMY_TEMPLATES[tier];
@@ -1458,19 +1485,24 @@ function updateUI() {
     <div class="stat-row"><span class="stat-label">击杀数</span><span class="stat-value">${state.kills}</span></div>
   `;
 
-  // Equipment display
+  // Equipment display (5 slots)
   const eqDiv = document.createElement('div');
   eqDiv.style.marginTop = '4px';
   eqDiv.style.borderTop = '1px solid rgba(255,255,255,0.05)';
   eqDiv.style.paddingTop = '4px';
-  const weapon = state.equipment.weapon ? state.equipment.weapon.name : '无';
-  const armor = state.equipment.armor ? state.equipment.armor.name : '无';
-  const mount = state.equipment.mount ? state.equipment.mount.name : '无';
-  eqDiv.innerHTML = `
-    <div class="equipment-row"><span class="eq-slot">武器</span><span class="eq-name">${weapon}</span></div>
-    <div class="equipment-row"><span class="eq-slot">防具</span><span class="eq-name">${armor}</span></div>
-    <div class="equipment-row"><span class="eq-slot">坐骑</span><span class="eq-name">${mount}</span></div>
-  `;
+  const eqSlots = [
+    { key: 'headwear', label: '头饰', icon: '👑' },
+    { key: 'armor',    label: '衣服', icon: '🛡️' },
+    { key: 'pants',    label: '裤子', icon: '👖' },
+    { key: 'weapon',   label: '兵器', icon: '⚔️' },
+    { key: 'mount',    label: '坐骑', icon: '🐎' },
+  ];
+  eqDiv.innerHTML = eqSlots.map(s => {
+    const item = state.equipment[s.key];
+    const name = item ? item.name : '无';
+    const color = item ? item.color : '#444';
+    return `<div class="equipment-row"><span class="eq-slot">${s.icon} ${s.label}</span><span class="eq-name" style="color:${color}">${name}</span></div>`;
+  }).join('');
   const statsContent = document.getElementById('stats-content');
   statsContent.appendChild(eqDiv);
 
@@ -1637,7 +1669,7 @@ function startGame(heroKey) {
   state.turn = 0;
   state.kills = 0;
   state.inventory = [];
-  state.equipment = { weapon: null, armor: null, mount: null };
+  state.equipment = { headwear: null, armor: null, pants: null, weapon: null, mount: null };
   state.buffs = [];
   state.powerStrike = false;
   state.abilityCooldown = 0;
