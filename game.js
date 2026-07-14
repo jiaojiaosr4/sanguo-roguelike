@@ -802,16 +802,18 @@ function useAbility() {
 // =============================================
 // ITEM SYSTEM
 // =============================================
-function pickUpItem() {
-  const px = state.playerX;
-  const py = state.playerY;
 
-  const itemIndex = state.floorItems.findIndex(fi => fi.x === px && fi.y === py);
-  if (itemIndex === -1) {
-    addMessage('脚下没有可拾取的物品', 'info');
-    return;
-  }
+// Toast notification state
+let toastMsg = null;
+let toastTimer = 0;
 
+function showToast(text, color) {
+  toastMsg = { text, color, frame: 0 };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastMsg = null; }, 1800);
+}
+
+function autoPickup(itemIndex) {
   const { item } = state.floorItems[itemIndex];
   state.floorItems.splice(itemIndex, 1);
 
@@ -823,7 +825,9 @@ function pickUpItem() {
         addMessage(`卸下 ${current.name}`, 'item');
       }
       state.equipment[item.slot] = item;
-      addMessage(`🎒 装备了 ${item.name}！${item.desc}`, 'item');
+      const msg = `装备了 ${item.name}！${item.desc}`;
+      addMessage(`🎒 ${msg}`, 'item');
+      showToast(msg, item.color || '#ffd700');
     } else {
       addMessage(`${item.name}不如当前装备，已丢弃`, 'info');
     }
@@ -831,12 +835,28 @@ function pickUpItem() {
     // Consumable - add to inventory
     if (state.inventory.length >= 12) {
       addMessage('背包已满！', 'info');
-      state.floorItems.push({ x: px, y: py, item }); // put it back
+      state.floorItems.push({ x: state.playerX, y: state.playerY, item });
+      showToast('背包已满！', '#ff4444');
       return;
     }
     state.inventory.push(item);
-    addMessage(`🎒 获得 ${item.name}：${item.desc}`, 'item');
+    const msg = `获得 ${item.name}`;
+    addMessage(`🎒 ${msg}：${item.desc}`, 'item');
+    showToast(msg, item.color || '#44cc44');
   }
+}
+
+function pickUpItem() {
+  const px = state.playerX;
+  const py = state.playerY;
+
+  const itemIndex = state.floorItems.findIndex(fi => fi.x === px && fi.y === py);
+  if (itemIndex === -1) {
+    addMessage('脚下没有可拾取的物品', 'info');
+    return;
+  }
+
+  autoPickup(itemIndex);
 }
 
 function useInventoryItem(index) {
@@ -972,21 +992,22 @@ function playerMove(dx, dy) {
   // Check wall
   if (state.map[ny][nx] === TILE.WALL) return;
 
-  // Check for enemy
+  // Enemy blocks movement — press J to attack
   const enemy = state.enemies.find(e => e._x === nx && e._y === ny);
   if (enemy) {
-    // Combat!
-    playerAttack(enemy);
-    if (enemy._hp > 0) {
-      enemyAttack(enemy);
-    }
-    endTurn();
+    addMessage(`⚠️ ${enemy.name}挡住了去路！按J攻击`, 'combat');
     return;
   }
 
   // Move player
   state.playerX = nx;
   state.playerY = ny;
+
+  // Auto-pickup items
+  const itemIdx = state.floorItems.findIndex(fi => fi.x === nx && fi.y === ny);
+  if (itemIdx !== -1) {
+    autoPickup(itemIdx);
+  }
 
   // Check for stairs
   if (state.map[ny][nx] === TILE.STAIRS) {
@@ -996,11 +1017,34 @@ function playerMove(dx, dy) {
   endTurn();
 }
 
-function playerWait() {
+// J key: attack adjacent enemy
+function playerAttackAdjacent() {
   if (state.gameOver) return;
-  // Small heal when waiting (1 HP)
-  playerHeal(1);
-  addMessage('⏳ 等待一回合，恢复1点生命', 'info');
+
+  const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  const px = state.playerX;
+  const py = state.playerY;
+
+  let attacked = false;
+  for (const [dx, dy] of dirs) {
+    const nx = px + dx;
+    const ny = py + dy;
+    const enemy = state.enemies.find(e => e._x === nx && e._y === ny);
+    if (enemy) {
+      playerAttack(enemy);
+      attacked = true;
+      if (enemy._hp > 0) {
+        enemyAttack(enemy);
+      }
+      break;
+    }
+  }
+
+  if (!attacked) {
+    addMessage('周围没有敌人可以攻击', 'info');
+    return;
+  }
+
   endTurn();
 }
 
@@ -1293,24 +1337,8 @@ function render() {
       // Draw floor items
       for (const fi of state.floorItems) {
         if (fi.x === mx && fi.y === my) {
-          // Item glow
-          ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
-          ctx.fillRect(sx, sy, ts, ts);
-
-          // Diamond shape
-          const cx = sx + ts / 2;
-          const cy = sy + ts / 2;
-          ctx.fillStyle = fi.item.slot ? '#cc88ff' : '#ffd700';
-          ctx.beginPath();
-          ctx.moveTo(cx, cy - 5);
-          ctx.lineTo(cx + 4, cy);
-          ctx.lineTo(cx, cy + 5);
-          ctx.lineTo(cx - 4, cy);
-          ctx.closePath();
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
+          let bobY = Math.sin(Date.now() / 400 + fi.x + fi.y) * 1.5; // gentle float animation
+          drawItemSprite(ctx, sx + ts / 2, sy + ts / 2 + bobY, fi.item);
         }
       }
 
@@ -1334,6 +1362,19 @@ function render() {
 
   // Draw combat effects (on top of everything)
   drawEffects(ctx, ts, vx, vy, vw, vh);
+
+  // Draw toast notification
+  if (toastMsg) {
+    const alpha = Math.min(1, toastMsg.frame < 10 ? toastMsg.frame / 10 : 1 - (toastMsg.frame - 30) / 30);
+    toastMsg.frame++;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = toastMsg.color;
+    ctx.font = 'bold 14px "Microsoft YaHei", "SimHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(toastMsg.text, canvas.width / 2, canvas.height / 6);
+    ctx.restore();
+  }
 
   // Draw minimap
   drawMinimap();
@@ -1769,6 +1810,121 @@ function adjustBrightness(hex, amount) {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
 
+// ---- ITEM SPRITES ----
+function drawItemSprite(ctx, cx, cy, item) {
+  const s = 6; // half-size
+  ctx.save();
+  // Glow
+  ctx.globalAlpha = 0.2 + Math.sin(Date.now() / 500) * 0.08;
+  circ(ctx, cx, cy, 10, item.color || '#ffd700');
+  ctx.globalAlpha = 1;
+
+  if (item.slot) {
+    // Equipment items — different shapes per slot
+    drawEquipmentItem(ctx, cx, cy, item);
+  } else {
+    // Consumable items
+    drawConsumableItem(ctx, cx, cy, item);
+  }
+  ctx.restore();
+}
+
+function drawEquipmentItem(ctx, cx, cy, item) {
+  const c = item.color;
+  switch (item.slot) {
+    case 'weapon':
+      // Sword shape
+      rect(ctx, cx - 1, cy - 7, 2, 14, c); // blade
+      rect(ctx, cx - 3, cy - 8, 6, 2, '#fff'); // crossguard
+      rect(ctx, cx - 1, cy + 6, 2, 4, '#8B4513'); // handle
+      rect(ctx, cx - 2, cy + 3, 4, 2, '#ffd700'); // guard
+      break;
+    case 'armor':
+      // Chest armor shape
+      rect(ctx, cx - 5, cy - 5, 10, 8, c);
+      rect(ctx, cx - 7, cy - 3, 14, 4, adjustBrightness(c, -20));
+      rect(ctx, cx - 3, cy - 4, 6, 6, '#ffd700'); // gem
+      rect(ctx, cx - 1, cy - 1, 2, 3, '#fff'); // highlight
+      break;
+    case 'headwear':
+      // Helmet/crown
+      rect(ctx, cx - 5, cy - 4, 10, 8, c);
+      rect(ctx, cx - 6, cy - 2, 12, 3, adjustBrightness(c, -30));
+      rect(ctx, cx - 1, cy - 6, 2, 3, '#ffd700'); // plume
+      break;
+    case 'pants':
+      // Pants/greaves
+      rect(ctx, cx - 5, cy - 3, 4, 8, c);
+      rect(ctx, cx + 1, cy - 3, 4, 8, c);
+      rect(ctx, cx - 3, cy - 4, 6, 2, '#ffd700'); // belt
+      break;
+    case 'mount':
+      // Horse shape
+      rect(ctx, cx - 2, cy - 6, 5, 5, c); // body
+      rect(ctx, cx - 1, cy - 8, 3, 3, c); // head
+      rect(ctx, cx + 2, cy - 5, 3, 2, c); // tail
+      rect(ctx, cx - 3, cy - 1, 2, 4, c); // front leg
+      rect(ctx, cx - 1, cy - 1, 2, 4, c); // back leg
+      rect(ctx, cx - 2, cy + 2, 5, 1, c); // ground
+      break;
+    default:
+      rect(ctx, cx - 4, cy - 4, 8, 8, c);
+  }
+}
+
+function drawConsumableItem(ctx, cx, cy, item) {
+  const c = item.color;
+  switch (item.type) {
+    case 'heal':
+    case 'heal_full':
+      // Potion bottle
+      rect(ctx, cx - 3, cy - 3, 6, 8, c);
+      rect(ctx, cx - 4, cy - 2, 8, 2, adjustBrightness(c, 30));
+      rect(ctx, cx - 1, cy - 6, 2, 4, '#888'); // neck
+      rect(ctx, cx - 2, cy - 7, 4, 2, '#aaa'); // cork
+      rect(ctx, cx - 1, cy - 1, 2, 2, '#fff'); // highlight
+      break;
+    case 'buff_atk':
+      // Red pill / scroll
+      rect(ctx, cx - 3, cy - 5, 6, 10, c);
+      rect(ctx, cx - 3, cy - 5, 6, 2, '#ffdddd');
+      rect(ctx, cx - 1, cy - 3, 1, 6, '#fff');
+      rect(ctx, cx - 3, cy + 2, 6, 2, adjustBrightness(c, -30));
+      // 攻 character
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('攻', cx, cy + 3);
+      break;
+    case 'buff_def':
+      // Blue pill / scroll
+      rect(ctx, cx - 3, cy - 5, 6, 10, c);
+      rect(ctx, cx - 3, cy - 5, 6, 2, '#ddddff');
+      rect(ctx, cx - 1, cy - 3, 1, 6, '#fff');
+      rect(ctx, cx - 3, cy + 2, 6, 2, adjustBrightness(c, -30));
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('守', cx, cy + 3);
+      break;
+    case 'buff_spd':
+      // Green pill / scroll
+      rect(ctx, cx - 3, cy - 5, 6, 10, c);
+      rect(ctx, cx - 3, cy - 5, 6, 2, '#ddffdd');
+      rect(ctx, cx - 1, cy - 3, 1, 6, '#fff');
+      rect(ctx, cx - 3, cy + 2, 6, 2, adjustBrightness(c, -30));
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('速', cx, cy + 3);
+      break;
+    default:
+      // Generic orb
+      circ(ctx, cx, cy, 5, c);
+      circ(ctx, cx - 1, cy - 2, 2, '#fff');
+  }
+}
+
 function drawMinimap() {
   const mc = state.miniCanvas;
   const mctx = state.miniCtx;
@@ -1987,12 +2143,16 @@ function handleKeyDown(e) {
       render();
       updateUI();
       break;
+    case 'j': case 'J':
+      e.preventDefault();
+      playerAttackAdjacent();
+      break;
     case 'f': case 'F':
       e.preventDefault();
       if (state.map[state.playerY] && state.map[state.playerY][state.playerX] === TILE.STAIRS) {
         descendStairs();
       } else {
-        pickUpItem();
+        addMessage('这里没有楼梯', 'info');
       }
       render();
       updateUI();
@@ -2048,6 +2208,7 @@ function startGame(heroKey) {
   state.gameOver = false;
   state.floorItems = [];
   state.messages = [];
+  toastMsg = null;
 
   // Hide/show screens
   document.getElementById('title-screen').style.display = 'none';
@@ -2060,7 +2221,7 @@ function startGame(heroKey) {
   updateUI();
 
   addMessage(`⚔️ ${state.hero.name}（${state.hero.title}）踏上了征程！`, 'info');
-  addMessage('WASD/方向键移动 | E技能 | F拾取/下楼 | B背包 | 空格等待', 'info');
+  addMessage('WASD移动 | J攻击 | E技能 | F下楼 | B背包 | 空格等待 | 自动拾取', 'info');
 }
 
 function resetToMenu() {
