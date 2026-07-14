@@ -1317,63 +1317,17 @@ function render() {
       // Draw enemies
       for (const enemy of state.enemies) {
         if (enemy._x === mx && enemy._y === my) {
-          // Enemy base
-          ctx.fillStyle = enemy.color;
-          ctx.beginPath();
           if (enemy.isBoss) {
-            // Boss: larger star shape
-            const cx = sx + ts / 2;
-            const cy = sy + ts / 2;
-            drawStar(ctx, cx, cy, 5, ts / 2 - 2, ts / 4 - 1);
-            ctx.fill();
-            ctx.strokeStyle = '#ff0';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            // Boss HP bar
-            const hpPct = enemy._hp / enemy._maxHp;
-            ctx.fillStyle = '#300';
-            ctx.fillRect(sx + 2, sy + 2, ts - 4, 3);
-            ctx.fillStyle = '#f00';
-            ctx.fillRect(sx + 2, sy + 2, (ts - 4) * hpPct, 3);
+            drawBossSprite(ctx, sx + ts / 2, sy + ts - 1, enemy);
           } else {
-            // Regular enemy: circle
-            ctx.arc(sx + ts / 2, sy + ts / 2, ts / 2 - 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            drawEnemySprite(ctx, sx + ts / 2, sy + ts - 1, enemy);
           }
-
-          // Enemy label
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 11px "Microsoft YaHei", "SimHei", sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(enemy.ch || enemy.name[0], sx + ts / 2, sy + ts / 2);
         }
       }
 
       // Draw player
       if (state.playerX === mx && state.playerY === my) {
-        // Player glow
-        ctx.fillStyle = 'rgba(68, 136, 255, 0.2)';
-        ctx.fillRect(sx, sy, ts, ts);
-
-        // Player circle
-        ctx.fillStyle = state.hero.color;
-        ctx.beginPath();
-        ctx.arc(sx + ts / 2, sy + ts / 2, ts / 2 - 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Player label
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px "Microsoft YaHei", "SimHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(state.hero.name[0], sx + ts / 2, sy + ts / 2);
+        drawHeroSprite(ctx, sx + ts / 2, sy + ts - 1, state.heroKey);
       }
     }
   }
@@ -1385,18 +1339,434 @@ function render() {
   drawMinimap();
 }
 
-function drawStar(ctx, cx, cy, spikes, outerR, innerR) {
-  let rot = (Math.PI / 2) * 3;
-  const step = Math.PI / spikes;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerR);
-  for (let i = 0; i < spikes; i++) {
-    ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
-    rot += step;
-    ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
-    rot += step;
+// =============================================
+// CHARACTER SPRITE SYSTEM
+// =============================================
+// Each sprite is pixel-art style, ~20-24px within 28px tile
+// Origin (cx, cy) = center-bottom of character
+
+function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+function circ(ctx, x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+
+// ---- HERO SPRITES ----
+
+function drawLiuBei(ctx, cx, cy) {
+  const c1 = '#4488cc'; const c2 = '#2266aa'; const skin = '#f5d5a8'; const gold = '#ffd700';
+  // Legs
+  rect(ctx, cx - 5, cy - 6, 4, 7, c2); rect(ctx, cx + 1, cy - 6, 4, 7, c2);
+  rect(ctx, cx - 5, cy - 3, 4, 2, '#335588'); rect(ctx, cx + 1, cy - 3, 4, 2, '#335588');
+  // Body - blue robe
+  rect(ctx, cx - 6, cy - 18, 12, 14, c1);
+  rect(ctx, cx - 7, cy - 14, 14, 6, c2); // shoulder width
+  // Belt
+  rect(ctx, cx - 6, cy - 7, 12, 2, gold);
+  // Sash
+  rect(ctx, cx, cy - 17, 2, 10, '#88ccff');
+  // Arms
+  rect(ctx, cx - 8, cy - 18, 3, 10, c1); rect(ctx, cx + 5, cy - 18, 3, 10, c1);
+  // Hands
+  rect(ctx, cx - 8, cy - 10, 3, 3, skin); rect(ctx, cx + 5, cy - 10, 3, 3, skin);
+  // Sword (right hand)
+  rect(ctx, cx + 8, cy - 18, 2, 14, '#cccccc'); rect(ctx, cx + 7, cy - 19, 4, 2, gold);
+  // Head
+  circ(ctx, cx, cy - 23, 5, skin);
+  // Crown
+  rect(ctx, cx - 5, cy - 29, 10, 3, gold);
+  rect(ctx, cx - 2, cy - 31, 1, 3, gold); rect(ctx, cx + 1, cy - 31, 1, 3, gold); rect(ctx, cx, cy - 33, 2, 3, gold);
+  // Eyes
+  rect(ctx, cx - 2, cy - 24, 2, 1, '#333'); rect(ctx, cx + 1, cy - 24, 2, 1, '#333');
+  // Beard
+  rect(ctx, cx - 1, cy - 18, 3, 1, '#333');
+  // Glow
+  ctx.globalAlpha = 0.15; circ(ctx, cx, cy - 12, 14, '#4488ff'); ctx.globalAlpha = 1;
+}
+
+function drawGuanYu(ctx, cx, cy) {
+  const g1 = '#22aa44'; const g2 = '#117733'; const skin = '#e8b88a'; const red = '#cc3333';
+  // Legs
+  rect(ctx, cx - 5, cy - 6, 4, 7, g2); rect(ctx, cx + 1, cy - 6, 4, 7, g2);
+  rect(ctx, cx - 5, cy - 3, 4, 3, '#115522'); rect(ctx, cx + 1, cy - 3, 4, 3, '#115522');
+  // Body - green robe
+  rect(ctx, cx - 6, cy - 18, 12, 14, g1);
+  rect(ctx, cx - 7, cy - 14, 14, 6, g2);
+  // Belt
+  rect(ctx, cx - 6, cy - 7, 12, 2, '#ffcc00');
+  // Armor plate
+  rect(ctx, cx - 5, cy - 16, 10, 4, '#338855');
+  rect(ctx, cx - 2, cy - 16, 4, 4, '#ffcc00'); // center gem
+  // Arms
+  rect(ctx, cx - 8, cy - 18, 3, 10, g1); rect(ctx, cx + 5, cy - 18, 3, 10, g1);
+  rect(ctx, cx - 8, cy - 10, 3, 3, skin); rect(ctx, cx + 5, cy - 10, 3, 3, skin);
+  // GuanDao (青龙偃月刀) - right hand
+  rect(ctx, cx + 8, cy - 26, 2, 22, '#664422'); // pole
+  rect(ctx, cx + 5, cy - 28, 8, 5, '#cccccc'); // blade
+  rect(ctx, cx + 6, cy - 26, 1, 4, red); // blade edge
+  // Head - reddish
+  circ(ctx, cx, cy - 23, 5, red);
+  // Green turban
+  rect(ctx, cx - 6, cy - 28, 12, 5, g1);
+  rect(ctx, cx - 6, cy - 27, 3, 5, g2);
+  // Eyes
+  rect(ctx, cx - 3, cy - 23, 2, 2, '#fff'); rect(ctx, cx + 1, cy - 23, 2, 2, '#fff');
+  rect(ctx, cx - 2, cy - 22, 1, 1, '#000'); rect(ctx, cx + 1, cy - 22, 1, 1, '#000');
+  // Long beard
+  rect(ctx, cx - 2, cy - 19, 4, 11, '#111');
+  rect(ctx, cx - 1, cy - 18, 2, 3, '#333');
+  // Glow
+  ctx.globalAlpha = 0.15; circ(ctx, cx, cy - 12, 14, '#22cc44'); ctx.globalAlpha = 1;
+}
+
+function drawCaoCao(ctx, cx, cy) {
+  const a1 = '#cc3333'; const a2 = '#881111'; const skin = '#e8c898'; const dark = '#222';
+  // Legs
+  rect(ctx, cx - 5, cy - 6, 4, 7, dark); rect(ctx, cx + 1, cy - 6, 4, 7, dark);
+  rect(ctx, cx - 5, cy - 3, 4, 3, '#444'); rect(ctx, cx + 1, cy - 3, 4, 3, '#444');
+  // Body - red cape / armor
+  rect(ctx, cx - 6, cy - 18, 12, 14, a2);
+  rect(ctx, cx - 7, cy - 14, 14, 6, a1);
+  // Cape flair
+  rect(ctx, cx - 8, cy - 6, 5, 8, a1); rect(ctx, cx + 3, cy - 6, 5, 8, a1);
+  // Armor detail
+  rect(ctx, cx - 5, cy - 17, 10, 5, dark);
+  rect(ctx, cx - 4, cy - 15, 8, 2, '#ffcc00'); // gold trim
+  // Belt
+  rect(ctx, cx - 6, cy - 8, 12, 2, '#ffcc00');
+  // Arms - armored
+  rect(ctx, cx - 8, cy - 18, 3, 10, dark); rect(ctx, cx + 5, cy - 18, 3, 10, dark);
+  rect(ctx, cx - 8, cy - 10, 3, 3, skin); rect(ctx, cx + 5, cy - 10, 3, 3, skin);
+  // Sword (青釭剑)
+  rect(ctx, cx + 8, cy - 17, 2, 13, '#aaaacc'); rect(ctx, cx + 7, cy - 18, 4, 2, '#ffcc00');
+  // Head
+  circ(ctx, cx, cy - 23, 5, skin);
+  // Helmet
+  rect(ctx, cx - 6, cy - 28, 12, 5, dark);
+  rect(ctx, cx - 5, cy - 30, 10, 2, dark);
+  rect(ctx, cx - 2, cy - 32, 4, 2, '#ffcc00'); // plume
+  // Stern eyes
+  rect(ctx, cx - 3, cy - 23, 3, 2, '#fff'); rect(ctx, cx + 1, cy - 23, 3, 2, '#fff');
+  rect(ctx, cx - 2, cy - 23, 1, 1, '#000'); rect(ctx, cx + 2, cy - 23, 1, 1, '#000');
+  // Beard
+  rect(ctx, cx - 2, cy - 18, 4, 3, '#222');
+  // Glow
+  ctx.globalAlpha = 0.15; circ(ctx, cx, cy - 12, 14, '#cc4444'); ctx.globalAlpha = 1;
+}
+
+function drawZhuGeLiang(ctx, cx, cy) {
+  const z1 = '#ddddff'; const z2 = '#aaaadd'; const skin = '#f8e8d0'; const pu = '#9966dd';
+  // Legs - flowing robe to feet
+  rect(ctx, cx - 5, cy - 6, 10, 7, z1);
+  // Body - white robe, wide
+  rect(ctx, cx - 7, cy - 19, 14, 15, z1);
+  rect(ctx, cx - 8, cy - 15, 16, 8, z2); // shoulders
+  // Inner robe
+  rect(ctx, cx - 4, cy - 18, 8, 14, '#eeeeff');
+  // Waist tie
+  rect(ctx, cx - 5, cy - 7, 10, 2, pu);
+  // Sleeves - wide
+  rect(ctx, cx - 9, cy - 18, 3, 9, z1); rect(ctx, cx + 6, cy - 18, 3, 9, z1);
+  rect(ctx, cx - 9, cy - 12, 4, 4, skin); rect(ctx, cx + 6, cy - 12, 4, 4, skin);
+  // Feather fan (left hand)
+  rect(ctx, cx - 13, cy - 18, 5, 12, '#eeeeee');
+  rect(ctx, cx - 12, cy - 17, 3, 3, '#ffffff');
+  rect(ctx, cx - 12, cy - 12, 3, 1, pu);
+  // Head
+  circ(ctx, cx, cy - 23, 5, skin);
+  // White headband / guanjin
+  rect(ctx, cx - 6, cy - 28, 12, 5, z1);
+  rect(ctx, cx - 5, cy - 26, 10, 2, z2); // band
+  rect(ctx, cx - 2, cy - 30, 1, 6, pu); // ornament
+  // Eyes - calm
+  rect(ctx, cx - 2, cy - 24, 2, 1, '#333'); rect(ctx, cx + 1, cy - 24, 2, 1, '#333');
+  // Goatee
+  rect(ctx, cx - 1, cy - 19, 3, 3, '#333');
+  // Glow
+  ctx.globalAlpha = 0.15; circ(ctx, cx, cy - 12, 14, '#aa66ff'); ctx.globalAlpha = 1;
+}
+
+function drawHeroSprite(ctx, cx, cy, heroKey) {
+  switch (heroKey) {
+    case 'liubei': drawLiuBei(ctx, cx, cy); break;
+    case 'guanyu': drawGuanYu(ctx, cx, cy); break;
+    case 'caocao': drawCaoCao(ctx, cx, cy); break;
+    case 'zhugeliang': drawZhuGeLiang(ctx, cx, cy); break;
+    default: drawLiuBei(ctx, cx, cy);
   }
-  ctx.closePath();
+}
+
+// ---- ENEMY SPRITES ----
+
+function drawEnemySprite(ctx, cx, cy, enemy) {
+  const name = enemy.name; const clr = enemy.color;
+  const skin = '#e0c090'; const dark = '#333';
+
+  // Common body template with variations
+  const isRanged = enemy.ranged;
+
+  // Legs
+  rect(ctx, cx - 4, cy - 5, 4, 6, dark); rect(ctx, cx + 1, cy - 5, 4, 6, dark);
+  // Body
+  rect(ctx, cx - 5, cy - 16, 10, 12, clr);
+  rect(ctx, cx - 6, cy - 13, 12, 5, adjustBrightness(clr, -20));
+  // Belt
+  rect(ctx, cx - 5, cy - 7, 10, 2, dark);
+  // Arms
+  rect(ctx, cx - 7, cy - 16, 3, 9, clr); rect(ctx, cx + 4, cy - 16, 3, 9, clr);
+  rect(ctx, cx - 7, cy - 9, 3, 3, skin); rect(ctx, cx + 4, cy - 9, 3, 3, skin);
+
+  if (isRanged) {
+    // Bow
+    rect(ctx, cx + 7, cy - 18, 1, 14, '#8B4513');
+    rect(ctx, cx + 5, cy - 18, 5, 1, '#A0522D');
+    // Quiver
+    rect(ctx, cx - 9, cy - 20, 2, 8, '#8B4513');
+  } else {
+    // Spear/sword
+    rect(ctx, cx + 7, cy - 18, 2, 14, '#886644');
+    rect(ctx, cx + 5, cy - 19, 5, 3, '#cccccc');
+  }
+
+  // Head
+  circ(ctx, cx, cy - 21, 4, skin);
+  // Helmet/bandana
+  rect(ctx, cx - 5, cy - 25, 10, 4, enemy.elite ? dark : adjustBrightness(clr, -30));
+
+  // Elite: shoulder pads
+  if (enemy.elite) {
+    rect(ctx, cx - 7, cy - 13, 3, 2, '#ffcc00');
+    rect(ctx, cx + 4, cy - 13, 3, 2, '#ffcc00');
+    rect(ctx, cx - 5, cy - 26, 2, 2, '#ffcc00'); // helmet plume
+    rect(ctx, cx + 3, cy - 26, 2, 2, '#ffcc00');
+  }
+
+  // Eyes
+  rect(ctx, cx - 2, cy - 22, 2, 1, '#fff'); rect(ctx, cx + 1, cy - 22, 2, 1, '#fff');
+  rect(ctx, cx - 2, cy - 22, 1, 1, dark); rect(ctx, cx + 1, cy - 22, 1, 1, dark);
+
+  // HP bar (small)
+  if (enemy._hp < enemy._maxHp) {
+    const hpPct = enemy._hp / enemy._maxHp;
+    rect(ctx, cx - 5, cy - 29, 10, 2, '#300');
+    rect(ctx, cx - 5, cy - 29, Math.ceil(10 * hpPct), 2, '#f44');
+  }
+}
+
+// ---- BOSS SPRITES ----
+
+function drawBossSprite(ctx, cx, cy, boss) {
+  // Boss glow
+  ctx.globalAlpha = 0.2 + Math.sin(Date.now() / 300) * 0.1;
+  circ(ctx, cx, cy - 12, 18, boss.color);
+  ctx.globalAlpha = 1;
+
+  // HP bar on top
+  const hpPct = boss._hp / boss._maxHp;
+  rect(ctx, cx - 8, cy - 34, 16, 3, '#300');
+  rect(ctx, cx - 8, cy - 34, Math.ceil(16 * hpPct), 3, '#f00');
+  rect(ctx, cx - 8, cy - 34, 16, 1, 'rgba(255,255,255,0.3)');
+
+  switch (boss.name) {
+    case '华雄': drawHuaXiong(ctx, cx, cy); break;
+    case '颜良文丑': drawYanLiangWenChou(ctx, cx, cy); break;
+    case '典韦': drawDianWei(ctx, cx, cy); break;
+    case '董卓': drawDongZhuo(ctx, cx, cy); break;
+    case '吕布': drawLvBu(ctx, cx, cy); break;
+    default: drawHuaXiong(ctx, cx, cy);
+  }
+}
+
+function drawHuaXiong(ctx, cx, cy) {
+  const skin = '#e8c898'; const arm = '#554433'; const helm = '#775533';
+  // Legs
+  rect(ctx, cx - 5, cy - 5, 4, 6, '#332211'); rect(ctx, cx + 1, cy - 5, 4, 6, '#332211');
+  // Boots
+  rect(ctx, cx - 5, cy - 2, 4, 2, arm); rect(ctx, cx + 1, cy - 2, 4, 2, arm);
+  // Body armor
+  rect(ctx, cx - 6, cy - 18, 12, 15, arm);
+  rect(ctx, cx - 7, cy - 14, 14, 7, '#665544');
+  // Chest plate
+  rect(ctx, cx - 5, cy - 16, 10, 6, '#887766');
+  rect(ctx, cx - 3, cy - 14, 6, 4, '#ff4400'); // red gem
+  // Belt
+  rect(ctx, cx - 6, cy - 7, 12, 2, '#cc9900');
+  // Arms
+  rect(ctx, cx - 8, cy - 18, 3, 11, arm); rect(ctx, cx + 5, cy - 18, 3, 11, arm);
+  rect(ctx, cx - 8, cy - 9, 3, 3, skin); rect(ctx, cx + 5, cy - 9, 3, 3, skin);
+  // Shoulder guards
+  rect(ctx, cx - 10, cy - 17, 5, 4, '#665544'); rect(ctx, cx + 5, cy - 17, 5, 4, '#665544');
+  // Spear
+  rect(ctx, cx + 8, cy - 25, 2, 20, '#553311');
+  rect(ctx, cx + 6, cy - 26, 6, 4, '#dddddd'); rect(ctx, cx + 7, cy - 24, 4, 1, '#ff4400');
+  // Head
+  circ(ctx, cx, cy - 22, 5, skin);
+  // Helmet
+  rect(ctx, cx - 6, cy - 28, 12, 6, helm);
+  rect(ctx, cx - 3, cy - 31, 6, 3, helm);
+  rect(ctx, cx, cy - 34, 3, 4, '#ff4400'); // red plume
+  // Eyes
+  rect(ctx, cx - 3, cy - 22, 3, 2, '#fff'); rect(ctx, cx + 1, cy - 22, 3, 2, '#fff');
+  rect(ctx, cx - 2, cy - 22, 1, 1, '#000'); rect(ctx, cx + 2, cy - 22, 1, 1, '#000');
+  // Beard
+  rect(ctx, cx - 3, cy - 18, 6, 5, '#222');
+}
+
+function drawYanLiangWenChou(ctx, cx, cy) {
+  const skin = '#e8c898'; const armGold = '#ccaa00';
+  // Two figures side by side (twin generals)
+  // Left figure - Wen Chou
+  // Legs
+  rect(ctx, cx - 7, cy - 5, 3, 6, '#332211'); rect(ctx, cx - 3, cy - 5, 3, 6, '#332211');
+  // Body
+  rect(ctx, cx - 7, cy - 16, 6, 12, '#cc8800');
+  rect(ctx, cx - 7, cy - 12, 6, 5, '#ddaa00');
+  // Head
+  circ(ctx, cx - 4, cy - 20, 4, skin);
+  rect(ctx, cx - 7, cy - 24, 6, 4, '#aa6600');
+  // Weapon
+  rect(ctx, cx - 1, cy - 20, 2, 15, '#553311');
+  rect(ctx, cx - 3, cy - 21, 6, 3, '#ddd');
+  // Right figure - Yan Liang
+  rect(ctx, cx + 2, cy - 5, 3, 6, '#332211'); rect(ctx, cx + 6, cy - 5, 3, 6, '#332211');
+  rect(ctx, cx + 2, cy - 16, 6, 12, '#dd9900');
+  rect(ctx, cx + 2, cy - 12, 6, 5, '#eebb00');
+  circ(ctx, cx + 5, cy - 20, 4, skin);
+  rect(ctx, cx + 2, cy - 24, 6, 4, '#aa6600');
+  rect(ctx, cx - 3, cy - 20, 2, 15, '#553311');
+  rect(ctx, cx - 5, cy - 21, 6, 3, '#ddd');
+  // Connecting glow
+  ctx.globalAlpha = 0.2;
+  circ(ctx, cx, cy - 18, 8, '#ffaa00');
+  ctx.globalAlpha = 1;
+}
+
+function drawDianWei(ctx, cx, cy) {
+  const skin = '#d8b080'; const arm = '#334455'; const fur = '#cc7722';
+  // Legs - thick
+  rect(ctx, cx - 6, cy - 5, 5, 7, '#222'); rect(ctx, cx + 2, cy - 5, 5, 7, '#222');
+  // Fur skirt
+  rect(ctx, cx - 8, cy - 8, 16, 5, fur);
+  rect(ctx, cx - 7, cy - 7, 14, 3, '#dd8833');
+  // Body - massive armor
+  rect(ctx, cx - 7, cy - 19, 14, 13, arm);
+  rect(ctx, cx - 8, cy - 15, 16, 8, '#445566');
+  // Chest
+  rect(ctx, cx - 6, cy - 17, 12, 7, '#556677');
+  rect(ctx, cx - 3, cy - 15, 6, 5, '#ff3300'); // tiger emblem
+  // Belt
+  rect(ctx, cx - 7, cy - 8, 14, 2, '#ffcc00');
+  // Arms - huge
+  rect(ctx, cx - 10, cy - 19, 4, 12, arm); rect(ctx, cx + 7, cy - 19, 4, 12, arm);
+  rect(ctx, cx - 10, cy - 9, 4, 3, skin); rect(ctx, cx + 7, cy - 9, 4, 3, skin);
+  // Shoulder guards
+  rect(ctx, cx - 12, cy - 17, 6, 5, '#445566'); rect(ctx, cx + 7, cy - 17, 6, 5, '#445566');
+  // Twin halberds
+  rect(ctx, cx - 12, cy - 26, 2, 18, '#553311'); rect(ctx, cx + 10, cy - 26, 2, 18, '#553311');
+  rect(ctx, cx - 14, cy - 27, 6, 4, '#ddd'); rect(ctx, cx + 8, cy - 27, 6, 4, '#ddd');
+  rect(ctx, cx - 13, cy - 26, 4, 2, '#f44'); rect(ctx, cx + 9, cy - 26, 4, 2, '#f44');
+  // Head
+  circ(ctx, cx, cy - 23, 5, skin);
+  // Tiger headdress
+  rect(ctx, cx - 7, cy - 29, 14, 7, fur);
+  rect(ctx, cx - 6, cy - 28, 12, 4, '#dd8833');
+  rect(ctx, cx - 3, cy - 27, 6, 3, '#fff'); // teeth/tiger pattern
+  // Eyes - fierce
+  rect(ctx, cx - 3, cy - 23, 3, 2, '#fff'); rect(ctx, cx + 1, cy - 23, 3, 2, '#fff');
+  rect(ctx, cx - 3, cy - 23, 2, 1, '#f00'); rect(ctx, cx + 1, cy - 23, 2, 1, '#f00'); // red eyes
+  // Beard
+  rect(ctx, cx - 4, cy - 19, 8, 6, '#111');
+}
+
+function drawDongZhuo(ctx, cx, cy) {
+  const skin = '#e0c090'; const pur = '#772277'; const fat = '#cc9955';
+  // Legs - wide
+  rect(ctx, cx - 7, cy - 5, 7, 6, '#332222'); rect(ctx, cx + 1, cy - 5, 7, 6, '#332222');
+  // Body - FAT
+  rect(ctx, cx - 8, cy - 18, 16, 15, pur);
+  rect(ctx, cx - 9, cy - 14, 18, 9, '#883388'); // wider belly
+  // Gold trim
+  rect(ctx, cx - 8, cy - 14, 16, 1, '#ffcc00');
+  rect(ctx, cx - 8, cy - 10, 16, 1, '#ffcc00');
+  // Belt - wide
+  rect(ctx, cx - 7, cy - 8, 14, 3, '#ffcc00');
+  rect(ctx, cx - 5, cy - 8, 10, 2, '#ffdd44');
+  // Arms
+  rect(ctx, cx - 10, cy - 17, 4, 10, pur); rect(ctx, cx + 7, cy - 17, 4, 10, pur);
+  rect(ctx, cx - 10, cy - 10, 4, 4, skin); rect(ctx, cx + 7, cy - 10, 4, 4, skin);
+  // Rings on fingers
+  rect(ctx, cx - 10, cy - 7, 2, 1, '#ffd700'); rect(ctx, cx + 9, cy - 7, 2, 1, '#ffd700');
+  // Whip (董卓用鞭)
+  rect(ctx, cx + 11, cy - 17, 1, 10, '#553311');
+  rect(ctx, cx + 9, cy - 18, 4, 1, '#774422');
+  // Head - large
+  circ(ctx, cx, cy - 23, 6, skin);
+  // Fat cheeks
+  rect(ctx, cx - 7, cy - 22, 3, 5, skin); rect(ctx, cx + 5, cy - 22, 3, 5, skin);
+  // Crown
+  rect(ctx, cx - 7, cy - 29, 14, 6, '#ffcc00');
+  rect(ctx, cx - 6, cy - 30, 12, 8, '#ffd700');
+  rect(ctx, cx - 2, cy - 32, 4, 2, '#ff4400'); // gem
+  rect(ctx, cx, cy - 35, 2, 4, '#ff4400'); // plume
+  // Small eyes
+  rect(ctx, cx - 3, cy - 23, 2, 2, '#fff'); rect(ctx, cx + 2, cy - 23, 2, 2, '#fff');
+  rect(ctx, cx - 2, cy - 22, 1, 1, '#000'); rect(ctx, cx + 2, cy - 22, 1, 1, '#000');
+  // Double chin
+  rect(ctx, cx - 3, cy - 18, 7, 2, skin);
+}
+
+function drawLvBu(ctx, cx, cy) {
+  const skin = '#f0d8b0'; const arm = '#cc2222'; const gold = '#ffd700';
+  // Legs
+  rect(ctx, cx - 5, cy - 5, 4, 6, '#331111'); rect(ctx, cx + 2, cy - 5, 4, 6, '#331111');
+  // Boots - ornate
+  rect(ctx, cx - 6, cy - 2, 5, 3, arm); rect(ctx, cx + 2, cy - 2, 5, 3, arm);
+  rect(ctx, cx - 4, cy - 3, 2, 2, gold); rect(ctx, cx + 3, cy - 3, 2, 2, gold);
+  // Body - red armor
+  rect(ctx, cx - 6, cy - 18, 13, 15, arm);
+  rect(ctx, cx - 7, cy - 14, 15, 7, '#dd3333');
+  // Chest plate
+  rect(ctx, cx - 5, cy - 17, 11, 7, '#bb1111');
+  rect(ctx, cx - 3, cy - 15, 7, 5, gold); // golden chest emblem
+  rect(ctx, cx - 1, cy - 14, 3, 3, '#ff0000'); // red gem center
+  // Belt
+  rect(ctx, cx - 6, cy - 7, 13, 2, gold);
+  // Cape
+  rect(ctx, cx - 8, cy - 6, 6, 8, '#881111'); rect(ctx, cx + 3, cy - 6, 6, 8, '#881111');
+  // Arms
+  rect(ctx, cx - 9, cy - 18, 4, 12, arm); rect(ctx, cx + 6, cy - 18, 4, 12, arm);
+  rect(ctx, cx - 9, cy - 9, 4, 3, skin); rect(ctx, cx + 6, cy - 9, 4, 3, skin);
+  // Shoulder guards - spiked
+  rect(ctx, cx - 10, cy - 18, 5, 4, gold); rect(ctx, cx + 6, cy - 18, 5, 4, gold);
+  rect(ctx, cx - 11, cy - 20, 2, 6, gold); rect(ctx, cx + 10, cy - 20, 2, 6, gold); // spikes
+  // 方天画戟 - massive
+  rect(ctx, cx + 10, cy - 28, 3, 24, '#553311'); // pole
+  rect(ctx, cx + 7, cy - 30, 9, 6, '#dddddd'); // blade
+  rect(ctx, cx + 8, cy - 29, 7, 4, '#ffffff'); // blade highlight
+  rect(ctx, cx + 10, cy - 28, 1, 5, gold); // gold trim
+  // Side blade
+  rect(ctx, cx + 13, cy - 26, 4, 3, '#dddddd');
+  // Head
+  circ(ctx, cx, cy - 23, 5, skin);
+  // Phoenix headdress (紫金冠)
+  rect(ctx, cx - 7, cy - 29, 14, 7, gold);
+  rect(ctx, cx - 5, cy - 28, 10, 4, '#ffee44');
+  // Twin pheasant tails (雉尾) - tall sweeping plumes
+  rect(ctx, cx - 4, cy - 35, 2, 10, '#ff4400');
+  rect(ctx, cx + 3, cy - 35, 2, 10, '#ff4400');
+  rect(ctx, cx - 5, cy - 36, 2, 2, '#ff6600');
+  rect(ctx, cx + 4, cy - 36, 2, 2, '#ff6600');
+  // Fierce eyes
+  rect(ctx, cx - 3, cy - 23, 3, 2, '#fff'); rect(ctx, cx + 1, cy - 23, 3, 2, '#fff');
+  rect(ctx, cx - 3, cy - 23, 2, 1, '#000'); rect(ctx, cx + 1, cy - 23, 2, 1, '#000');
+  // Proud chin
+  rect(ctx, cx - 2, cy - 17, 4, 2, '#222');
+}
+
+// ---- Utility ----
+function adjustBrightness(hex, amount) {
+  hex = hex.replace('#', '');
+  const r = Math.min(255, Math.max(0, parseInt(hex.substr(0, 2), 16) + amount));
+  const g = Math.min(255, Math.max(0, parseInt(hex.substr(2, 2), 16) + amount));
+  const b = Math.min(255, Math.max(0, parseInt(hex.substr(4, 2), 16) + amount));
+  return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
 
 function drawMinimap() {
