@@ -73,36 +73,36 @@ const HEROES = {
 const ENEMY_TEMPLATES = {
   // Floor 1-2
   tier1: [
-    { name: '黄巾兵', ch: '兵', hp: 25, atk: 8, def: 3, spd: 5, xp: 12, color: '#dd8844', detect: 5 },
-    { name: '黄巾头目', ch: '目', hp: 40, atk: 12, def: 5, spd: 6, xp: 22, color: '#cc6633', detect: 6, elite: true },
-    { name: '山贼', ch: '贼', hp: 30, atk: 10, def: 4, spd: 6, xp: 15, color: '#aa6644', detect: 5 },
+    { name: '黄巾兵', ch: '兵', hp: 35, atk: 10, def: 4, spd: 6, xp: 12, color: '#dd8844', detect: 6 },
+    { name: '黄巾头目', ch: '目', hp: 55, atk: 15, def: 7, spd: 7, xp: 22, color: '#cc6633', detect: 7, elite: true },
+    { name: '山贼', ch: '贼', hp: 40, atk: 12, def: 5, spd: 7, xp: 15, color: '#aa6644', detect: 6 },
   ],
-  // Floor 3-4
+  // Floor 3-5
   tier2: [
-    { name: '西凉骑兵', ch: '骑', hp: 50, atk: 15, def: 7, spd: 8, xp: 25, color: '#cc8844', detect: 7 },
-    { name: '董卓亲卫', ch: '卫', hp: 60, atk: 18, def: 9, spd: 7, xp: 30, color: '#bb5533', detect: 6, elite: true },
-    { name: '李傕部将', ch: '傕', hp: 45, atk: 14, def: 6, spd: 8, xp: 22, color: '#996644', detect: 7 },
+    { name: '西凉骑兵', ch: '骑', hp: 65, atk: 19, def: 9, spd: 9, xp: 25, color: '#cc8844', detect: 7 },
+    { name: '董卓亲卫', ch: '卫', hp: 80, atk: 22, def: 12, spd: 8, xp: 30, color: '#bb5533', detect: 7, elite: true },
+    { name: '李傕部将', ch: '傕', hp: 60, atk: 18, def: 8, spd: 9, xp: 22, color: '#996644', detect: 7 },
   ],
-  // Floor 5-6
+  // Floor 6-7
   tier3: [
-    { name: '虎豹骑', ch: '豹', hp: 75, atk: 22, def: 11, spd: 10, xp: 40, color: '#cc5555', detect: 8 },
-    { name: '精锐弓手', ch: '弓', hp: 55, atk: 25, def: 7, spd: 9, xp: 38, color: '#dd6666', detect: 9, ranged: true },
-    { name: '许褚部将', ch: '许', hp: 85, atk: 24, def: 13, spd: 8, xp: 50, color: '#bb3333', detect: 7, elite: true },
+    { name: '虎豹骑', ch: '豹', hp: 100, atk: 27, def: 14, spd: 11, xp: 40, color: '#cc5555', detect: 8 },
+    { name: '精锐弓手', ch: '弓', hp: 70, atk: 30, def: 9, spd: 10, xp: 38, color: '#dd6666', detect: 10, ranged: true },
+    { name: '许褚部将', ch: '许', hp: 115, atk: 29, def: 16, spd: 9, xp: 50, color: '#bb3333', detect: 8, elite: true },
   ],
-  // Floor 7-8
+  // Floor 8-10
   tier4: [
-    { name: '禁卫军', ch: '禁', hp: 95, atk: 28, def: 15, spd: 10, xp: 55, color: '#cc3333', detect: 9 },
-    { name: '大将', ch: '将', hp: 120, atk: 32, def: 18, spd: 12, xp: 70, color: '#ee3333', detect: 10, elite: true },
-    { name: '虎贲军', ch: '贲', hp: 85, atk: 26, def: 14, spd: 11, xp: 50, color: '#cc4444', detect: 9 },
+    { name: '禁卫军', ch: '禁', hp: 125, atk: 34, def: 18, spd: 11, xp: 55, color: '#cc3333', detect: 9 },
+    { name: '大将', ch: '将', hp: 160, atk: 39, def: 22, spd: 13, xp: 70, color: '#ee3333', detect: 10, elite: true },
+    { name: '虎贲军', ch: '贲', hp: 110, atk: 32, def: 17, spd: 12, xp: 50, color: '#cc4444', detect: 9 },
   ],
 };
 
 const BOSSES = [
-  { floor: 2,  name: '华雄',     ch: '雄', hp: 140, atk: 22, def: 14, spd: 7,  xp: 100, color: '#ff4400', slot: 'headwear' },
-  { floor: 4,  name: '颜良文丑', ch: '颜', hp: 210, atk: 30, def: 18, spd: 9,  xp: 180, color: '#ff5500', slot: 'armor' },
-  { floor: 6,  name: '典韦',     ch: '韦', hp: 290, atk: 38, def: 26, spd: 11, xp: 290, color: '#ff3300', slot: 'pants' },
-  { floor: 8,  name: '董卓',     ch: '董', hp: 360, atk: 42, def: 30, spd: 8,  xp: 380, color: '#990099', slot: 'mount' },
-  { floor: 10, name: '吕布',     ch: '吕', hp: 460, atk: 50, def: 32, spd: 16, xp: 550, color: '#ff0000', slot: 'weapon' },
+  { floor: 2,  name: '华雄',     ch: '雄', hp: 180, atk: 26, def: 16, spd: 8,  xp: 120, color: '#ff4400', slot: 'headwear' },
+  { floor: 4,  name: '颜良文丑', ch: '颜', hp: 270, atk: 36, def: 22, spd: 10, xp: 210, color: '#ff5500', slot: 'armor' },
+  { floor: 6,  name: '典韦',     ch: '韦', hp: 380, atk: 46, def: 32, spd: 12, xp: 340, color: '#ff3300', slot: 'pants' },
+  { floor: 8,  name: '董卓',     ch: '董', hp: 480, atk: 50, def: 36, spd: 9,  xp: 450, color: '#990099', slot: 'mount' },
+  { floor: 10, name: '吕布',     ch: '吕', hp: 620, atk: 60, def: 40, spd: 18, xp: 650, color: '#ff0000', slot: 'weapon' },
 ];
 
 // Boss 专属掉落
@@ -160,7 +160,7 @@ const state = {
   heroKey: null,
   level: 1,
   xp: 0,
-  xpToNext: 20,
+  xpToNext: 25,
   playerX: 0,
   playerY: 0,
   inventory: [],       // consumable items
@@ -712,8 +712,8 @@ function enemyDefeated(enemy) {
       addMessage(`📦 ${enemy.name}掉落专属装备：${droppedItem.name}！`, 'item');
     }
   } else {
-    const dropChance = enemy.elite ? 0.5 : 0.25;
-    const equipChance = enemy.elite ? 0.15 : 0.05;
+    const dropChance = enemy.elite ? 0.35 : 0.15;
+    const equipChance = enemy.elite ? 0.10 : 0.03;
     if (Math.random() < dropChance) {
       let droppedItem;
       if (Math.random() < equipChance) {
@@ -734,9 +734,9 @@ function checkLevelUp() {
   while (state.xp >= state.xpToNext) {
     state.xp -= state.xpToNext;
     state.level++;
-    state.xpToNext = state.level * 25;
-    playerFullHeal();
-    addMessage(`🎉 升级！达到 Lv.${state.level}！生命值完全恢复！`, 'levelup');
+    state.xpToNext = state.level * 30;
+    playerHeal(20); // 升级只恢复20点，不再满血
+    addMessage(`🎉 升级！达到 Lv.${state.level}！恢复20点生命`, 'levelup');
   }
 }
 
@@ -891,8 +891,8 @@ function enemyTurn() {
       // Move toward player
       moveEnemyToward(enemy, state.playerX, state.playerY);
     } else {
-      // Wander randomly (30% chance)
-      if (Math.random() < 0.3) {
+      // Wander randomly (50% chance — more aggressive patrol)
+      if (Math.random() < 0.5) {
         const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         const [dx, dy] = randPick(dirs);
         moveEnemy(enemy, ex + dx, ey + dy);
@@ -1068,7 +1068,7 @@ function generateFloor() {
 
   // Place enemies
   state.enemies = [];
-  const floorScale = 1 + (state.floor - 1) * 0.3;
+  const floorScale = 1 + (state.floor - 1) * 0.5;
 
   // Determine tier
   let tier;
@@ -1078,7 +1078,7 @@ function generateFloor() {
   else tier = 'tier4';
 
   const templates = ENEMY_TEMPLATES[tier];
-  const numEnemies = rand(4, 7) + Math.floor(state.floor / 2);
+  const numEnemies = rand(6, 10) + Math.floor(state.floor / 2);
 
   for (let i = 0; i < numEnemies; i++) {
     const roomIdx = rand(1, rooms.length - 1); // skip first room
@@ -1605,7 +1605,9 @@ function handleKeyDown(e) {
       break;
     case ' ':
       e.preventDefault();
-      playerWait();
+      // 等待不再回血，纯粹跳过回合
+      addMessage('⏳ 等待一回合', 'info');
+      endTurn();
       break;
     case 'e': case 'E':
       e.preventDefault();
@@ -1664,7 +1666,7 @@ function startGame(heroKey) {
   state.hero._hp = state.hero.hp;
   state.level = 1;
   state.xp = 0;
-  state.xpToNext = 20;
+  state.xpToNext = 25;
   state.floor = 1;
   state.turn = 0;
   state.kills = 0;
