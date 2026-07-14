@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三国肉鸽 - Three Kingdoms Roguelike</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 标题画面 -->
+  <div id="title-screen" class="screen">
+    <div class="title-bg"></div>
+    <div class="title-content">
+      <h1 class="game-title">
+        <span class="title-cn">三国肉鸽</span>
+        <span class="title-en">Three Kingdoms Roguelike</span>
+      </h1>
+      <p class="title-desc">在乱世中杀出一条血路，击败吕布，成就霸业！</p>
+      <div class="hero-select">
+        <h2>选择你的英雄</h2>
+        <div class="hero-cards">
+          <div class="hero-card" data-hero="liubei">
+            <div class="hero-avatar" style="background:#44aaff;">刘</div>
+            <div class="hero-info">
+              <h3>刘备</h3>
+              <p class="hero-title">仁德之君</p>
+              <div class="hero-stats">
+                <span>❤️ 130</span><span>⚔️ 14</span><span>🛡️ 10</span><span>💨 8</span>
+              </div>
+              <p class="hero-skill">【仁德】恢复30%生命值 · CD5</p>
+            </div>
+          </div>
+          <div class="hero-card" data-hero="guanyu">
+            <div class="hero-avatar" style="background:#22cc44;">关</div>
+            <div class="hero-info">
+              <h3>关羽</h3>
+              <p class="hero-title">武圣</p>
+              <div class="hero-stats">
+                <span>❤️ 110</span><span>⚔️ 22</span><span>🛡️ 8</span><span>💨 9</span>
+              </div>
+              <p class="hero-skill">【武圣】下次攻击3倍伤害 · CD4</p>
+            </div>
+          </div>
+          <div class="hero-card" data-hero="caocao">
+            <div class="hero-avatar" style="background:#cc4444;">曹</div>
+            <div class="hero-info">
+              <h3>曹操</h3>
+              <p class="hero-title">乱世奸雄</p>
+              <div class="hero-stats">
+                <span>❤️ 150</span><span>⚔️ 16</span><span>🛡️ 12</span><span>💨 7</span>
+              </div>
+              <p class="hero-skill">【奸雄】3回合防御翻倍 · CD5</p>
+            </div>
+          </div>
+          <div class="hero-card" data-hero="zhugeliang">
+            <div class="hero-avatar" style="background:#aa66ff;">诸</div>
+            <div class="hero-info">
+              <h3>诸葛亮</h3>
+              <p class="hero-title">卧龙</p>
+              <div class="hero-stats">
+                <span>❤️ 95</span><span>⚔️ 18</span><span>🛡️ 6</span><span>💨 10</span>
+              </div>
+              <p class="hero-skill">【奇门遁甲】范围AOE伤害 · CD4</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="title-hint">点击英雄卡片开始游戏</p>
+    </div>
+  </div>
+
+  <!-- 游戏画面 -->
+  <div id="game-screen" class="screen" style="display:none;">
+    <div class="game-layout">
+      <div class="game-main">
+        <div class="game-header">
+          <span id="floor-indicator">第1层</span>
+          <span id="hero-name-display"></span>
+          <span id="level-display">Lv.1</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="game-canvas"></canvas>
+        </div>
+        <div class="game-controls-hint">
+          <span>WASD/方向键 移动</span>
+          <span>E 技能</span>
+          <span>I 背包</span>
+          <span>空格 等待</span>
+          <span>G 拾取</span>
+        </div>
+      </div>
+      <div class="game-sidebar">
+        <div class="panel stats-panel">
+          <h3>📋 状态</h3>
+          <div id="stats-content"></div>
+        </div>
+        <div class="panel skill-panel">
+          <h3>✨ 技能</h3>
+          <div id="skill-content"></div>
+        </div>
+        <div class="panel minimap-panel">
+          <h3>🗺️ 小地图</h3>
+          <canvas id="minimap-canvas"></canvas>
+        </div>
+        <div class="panel inventory-panel" id="inventory-panel">
+          <h3>🎒 背包 <span id="inv-toggle">[展开]</span></h3>
+          <div id="inventory-content" style="display:none;"></div>
+        </div>
+        <div class="panel log-panel">
+          <h3>📜 战报</h3>
+          <div id="message-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 游戏结束画面 -->
+  <div id="gameover-screen" class="screen overlay-screen" style="display:none;">
+    <div class="overlay-content">
+      <h1 id="gameover-title">兵败身亡</h1>
+      <div id="gameover-stats"></div>
+      <button id="restart-btn" class="btn">再来一局</button>
+      <button id="back-to-menu-btn" class="btn btn-secondary">返回主菜单</button>
+    </div>
+  </div>
+
+  <!-- 胜利画面 -->
+  <div id="victory-screen" class="screen overlay-screen" style="display:none;">
+    <div class="overlay-content victory">
+      <h1>🏆 天下归心！</h1>
+      <p>你击败了吕布，一统天下！</p>
+      <div id="victory-stats"></div>
+      <button id="victory-restart-btn" class="btn">再来一局</button>
+      <button id="victory-menu-btn" class="btn btn-secondary">返回主菜单</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
