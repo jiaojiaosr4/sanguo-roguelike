@@ -168,6 +168,7 @@ const state = {
   buffs: [],           // active buffs { name, turns, atk?, def?, spd? }
   powerStrike: false,  // 关羽's next attack buff
   abilityCooldown: 0,
+  facing: { dx: 0, dy: 1 }, // player facing direction for attacks
 
   // Map
   map: [],
@@ -986,15 +987,20 @@ function playerMove(dx, dy) {
   const nx = state.playerX + dx;
   const ny = state.playerY + dy;
 
+  // Update facing direction
+  if (dx !== 0 || dy !== 0) {
+    state.facing = { dx, dy };
+  }
+
   // Check bounds
   if (nx < 0 || nx >= CFG.MAP_W || ny < 0 || ny >= CFG.MAP_H) return;
   // Check wall
   if (state.map[ny][nx] === TILE.WALL) return;
 
-  // Enemy blocks movement — press J to attack
+  // Enemy blocks movement
   const enemy = state.enemies.find(e => e._x === nx && e._y === ny);
   if (enemy) {
-    addMessage(`⚠️ ${enemy.name}挡住了去路！点击敌人攻击`, 'combat');
+    addMessage(`⚠️ ${enemy.name}挡住了去路！点击画面攻击`, 'combat');
     return;
   }
 
@@ -1330,6 +1336,16 @@ function render() {
 
   // Draw combat effects (on top of everything)
   drawEffects(ctx, ts, vx, vy, vw, vh);
+
+  // Facing indicator — white dot in front of player
+  const pScreenX = (state.playerX - vx) * ts + ts / 2 + state.facing.dx * (ts / 2 + 3);
+  const pScreenY = (state.playerY - vy) * ts + ts / 2 + state.facing.dy * (ts / 2 + 3);
+  ctx.fillStyle = '#fff';
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.arc(pScreenX, pScreenY, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
   // Draw toast notification
   if (toastMsg) {
@@ -2179,6 +2195,7 @@ function startGame(heroKey) {
   state.buffs = [];
   state.powerStrike = false;
   state.abilityCooldown = 0;
+  state.facing = { dx: 0, dy: 1 };
   state.gameOver = false;
   state.floorItems = [];
   state.messages = [];
@@ -2195,7 +2212,7 @@ function startGame(heroKey) {
   updateUI();
 
   addMessage(`⚔️ ${state.hero.name}（${state.hero.title}）踏上了征程！`, 'info');
-  addMessage('WASD移动 | 点击敌人攻击 | E技能 | F下楼 | B背包 | 空格等待 | 自动拾取', 'info');
+  addMessage('WASD移动(面朝方向) | 左键攻击身前 | E技能 | F下楼 | B背包 | 空格等待', 'info');
 }
 
 function resetToMenu() {
@@ -2223,36 +2240,28 @@ function init() {
   // Keyboard input
   window.addEventListener('keydown', handleKeyDown);
 
-  // Mouse click — attack in clicked direction
+  // Mouse click — attack in facing direction
   state.canvas.addEventListener('click', (e) => {
     if (state.gameOver) return;
-    const rect = state.canvas.getBoundingClientRect();
-    const scaleX = state.canvas.width / rect.width;
-    const scaleY = state.canvas.height / rect.height;
-    const cx = (e.clientX - rect.left) * scaleX;
-    const cy = (e.clientY - rect.top) * scaleY;
-    const ts = CFG.TILE_SIZE;
-    const mx = Math.floor(cx / ts) + state.vx;
-    const my = Math.floor(cy / ts) + state.vy;
-    const d = dist(state.playerX, state.playerY, mx, my);
+    e.preventDefault();
+    e.stopPropagation();
 
-    // Check if there's an enemy within attack range (adjacent) at the clicked tile
-    let enemy = null;
-    if (d === 1) {
-      enemy = state.enemies.find(en => en._x === mx && en._y === my);
-    }
+    const tx = state.playerX + state.facing.dx;
+    const ty = state.playerY + state.facing.dy;
+
+    // Check if there's an enemy adjacent in facing direction
+    const enemy = state.enemies.find(en => en._x === tx && en._y === ty);
 
     if (enemy) {
-      // Hit!
       playerAttack(enemy);
       if (enemy._hp > 0) {
         enemyAttack(enemy);
       }
+      endTurn();
     } else {
-      // Swing and miss — still consumes turn
+      // Swing and miss
       addMessage('⚔️ 挥空！', 'combat');
-      // Spawn a small miss effect at the clicked tile
-      spawnEffect(mx, my, 'flash', { color: '#ffffff', maxFrames: 8 });
+      spawnEffect(tx, ty, 'flash', { color: '#ffffff', maxFrames: 8 });
       endTurn();
     }
   });
