@@ -806,11 +806,20 @@ function useAbility() {
 // Toast notification state
 let toastMsg = null;
 let toastTimer = 0;
+let toastRafId = null;
 
 function showToast(text, color) {
-  toastMsg = { text, color, frame: 0 };
+  toastMsg = { text, color, spawnTime: Date.now() };
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toastMsg = null; }, 1800);
+  cancelAnimationFrame(toastRafId);
+  toastTimer = setTimeout(() => { toastMsg = null; cancelAnimationFrame(toastRafId); }, 2000);
+  // Keep rendering while toast is active
+  function tick() {
+    if (!toastMsg) return;
+    render();
+    toastRafId = requestAnimationFrame(tick);
+  }
+  toastRafId = requestAnimationFrame(tick);
 }
 
 function autoPickup(itemIndex) {
@@ -830,6 +839,7 @@ function autoPickup(itemIndex) {
       showToast(msg, item.color || '#ffd700');
     } else {
       addMessage(`${item.name}不如当前装备，已丢弃`, 'info');
+      showToast(`${item.name} 已丢弃`, '#888888');
     }
   } else {
     // Consumable - add to inventory
@@ -846,18 +856,7 @@ function autoPickup(itemIndex) {
   }
 }
 
-function pickUpItem() {
-  const px = state.playerX;
-  const py = state.playerY;
 
-  const itemIndex = state.floorItems.findIndex(fi => fi.x === px && fi.y === py);
-  if (itemIndex === -1) {
-    addMessage('脚下没有可拾取的物品', 'info');
-    return;
-  }
-
-  autoPickup(itemIndex);
-}
 
 function useInventoryItem(index) {
   if (index < 0 || index >= state.inventory.length) return;
@@ -1365,13 +1364,23 @@ function render() {
 
   // Draw toast notification
   if (toastMsg) {
-    const alpha = Math.min(1, toastMsg.frame < 10 ? toastMsg.frame / 10 : 1 - (toastMsg.frame - 30) / 30);
-    toastMsg.frame++;
+    const elapsed = (Date.now() - toastMsg.spawnTime) / 1000; // seconds
+    let alpha;
+    if (elapsed < 0.2) alpha = elapsed / 0.2;       // fade in 200ms
+    else if (elapsed < 1.5) alpha = 1;               // stay
+    else alpha = 1 - (elapsed - 1.5) / 0.5;          // fade out 500ms
+    alpha = Math.max(0, Math.min(1, alpha));
+
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = toastMsg.color;
-    ctx.font = 'bold 14px "Microsoft YaHei", "SimHei", sans-serif';
+    ctx.font = 'bold 15px "Microsoft YaHei", "SimHei", sans-serif';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // White outline for readability
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(toastMsg.text, canvas.width / 2, canvas.height / 6);
     ctx.fillText(toastMsg.text, canvas.width / 2, canvas.height / 6);
     ctx.restore();
   }
@@ -2143,10 +2152,6 @@ function handleKeyDown(e) {
       render();
       updateUI();
       break;
-    case 'j': case 'J':
-      e.preventDefault();
-      playerAttackAdjacent();
-      break;
     case 'f': case 'F':
       e.preventDefault();
       if (state.map[state.playerY] && state.map[state.playerY][state.playerX] === TILE.STAIRS) {
@@ -2221,7 +2226,7 @@ function startGame(heroKey) {
   updateUI();
 
   addMessage(`⚔️ ${state.hero.name}（${state.hero.title}）踏上了征程！`, 'info');
-  addMessage('WASD移动 | J攻击 | E技能 | F下楼 | B背包 | 空格等待 | 自动拾取', 'info');
+  addMessage('WASD移动 | 点击敌人攻击 | E技能 | F下楼 | B背包 | 空格等待 | 自动拾取', 'info');
 }
 
 function resetToMenu() {
@@ -2248,6 +2253,30 @@ function init() {
 
   // Keyboard input
   window.addEventListener('keydown', handleKeyDown);
+
+  // Mouse click — attack adjacent enemy
+  state.canvas.addEventListener('click', (e) => {
+    if (state.gameOver) return;
+    const rect = state.canvas.getBoundingClientRect();
+    const scaleX = state.canvas.width / rect.width;
+    const scaleY = state.canvas.height / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top) * scaleY;
+    const ts = CFG.TILE_SIZE;
+    const mx = Math.floor(cx / ts) + state.vx;
+    const my = Math.floor(cy / ts) + state.vy;
+    // Must be adjacent to player
+    if (dist(state.playerX, state.playerY, mx, my) !== 1) return;
+    // Must have an enemy there
+    const enemy = state.enemies.find(en => en._x === mx && en._y === my);
+    if (!enemy) return;
+    // Attack!
+    playerAttack(enemy);
+    if (enemy._hp > 0) {
+      enemyAttack(enemy);
+    }
+    endTurn();
+  });
 
   // Hero selection click handlers
   document.querySelectorAll('.hero-card').forEach(card => {
