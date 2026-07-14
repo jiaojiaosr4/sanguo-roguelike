@@ -164,11 +164,17 @@ const state = {
   messages: [],
   gameOver: false,
 
+  // Effects (combat visuals)
+  effects: [],
+  animFrameId: null,
+
   // Canvas
   canvas: null,
   ctx: null,
   miniCanvas: null,
   miniCtx: null,
+  vx: 0,
+  vy: 0,
 };
 
 // =============================================
@@ -192,6 +198,163 @@ function dist(x1, y1, x2, y2) {
 
 function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+// =============================================
+// COMBAT EFFECTS / VISUALS
+// =============================================
+function spawnEffect(x, y, type, opts = {}) {
+  state.effects.push({
+    x, y, type,
+    frame: 0,
+    maxFrames: opts.maxFrames || 12,
+    color: opts.color || '#fff',
+    damage: opts.damage || 0,
+    isCrit: opts.isCrit || false,
+    dx: opts.dx || 0,
+    dy: opts.dy || 0,
+  });
+  // Start animation loop if not running
+  if (!state.animFrameId) {
+    state.animFrameId = requestAnimationFrame(animLoop);
+  }
+}
+
+function spawnSlashEffect(fromX, fromY, toX, toY, damage, isCrit) {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  spawnEffect(toX, toY, 'slash', { damage, isCrit, dx, dy });
+  // Also spawn hit particles
+  for (let i = 0; i < (isCrit ? 8 : 4); i++) {
+    spawnEffect(toX, toY, 'particle', {
+      color: isCrit ? '#ff4444' : '#ffdd44',
+      dx: (Math.random() - 0.5) * 8,
+      dy: (Math.random() - 0.5) * 8,
+      maxFrames: 6 + Math.floor(Math.random() * 6),
+    });
+  }
+  // Flash the defender tile
+  spawnEffect(toX, toY, 'flash', {
+    color: isCrit ? '#ff0000' : '#ff8800',
+    maxFrames: isCrit ? 8 : 5,
+  });
+}
+
+function spawnHealEffect(x, y) {
+  for (let i = 0; i < 6; i++) {
+    spawnEffect(x, y, 'particle', {
+      color: '#44ff44',
+      dx: (Math.random() - 0.5) * 6,
+      dy: -2 - Math.random() * 6,
+      maxFrames: 10 + Math.floor(Math.random() * 8),
+    });
+  }
+}
+
+function spawnAbilityEffect(x, y, color) {
+  for (let i = 0; i < 10; i++) {
+    spawnEffect(x, y, 'particle', {
+      color,
+      dx: (Math.random() - 0.5) * 12,
+      dy: (Math.random() - 0.5) * 12,
+      maxFrames: 12 + Math.floor(Math.random() * 10),
+    });
+  }
+  spawnEffect(x, y, 'flash', { color, maxFrames: 10 });
+}
+
+function animLoop() {
+  const canvas = state.canvas;
+  const ctx = state.ctx;
+
+  // Update effects
+  state.effects = state.effects.filter(e => {
+    e.frame++;
+    return e.frame < e.maxFrames;
+  });
+
+  // If effects still exist, keep looping; otherwise stop
+  if (state.effects.length > 0) {
+    state.animFrameId = requestAnimationFrame(animLoop);
+  } else {
+    state.animFrameId = null;
+  }
+
+  // Re-render
+  render();
+}
+
+function drawEffects(ctx, ts, vx, vy, vw, vh) {
+  for (const e of state.effects) {
+    const sx = (e.x - vx) * ts;
+    const sy = (e.y - vy) * ts;
+    if (sx < -ts || sx > vw * ts + ts || sy < -ts || sy > vh * ts + ts) continue;
+
+    const progress = e.frame / e.maxFrames;
+    const cx = sx + ts / 2;
+    const cy = sy + ts / 2;
+    const alpha = 1 - progress;
+
+    switch (e.type) {
+      case 'flash':
+        // Flash overlay on the tile
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(sx, sy, ts, ts);
+        ctx.globalAlpha = 1;
+        break;
+
+      case 'slash':
+        // Slash arc from attacker direction
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const angle = Math.atan2(e.dy, e.dx);
+        ctx.strokeStyle = e.isCrit ? '#ff2222' : '#ffdd44';
+        ctx.lineWidth = e.isCrit ? 3 : 2;
+        ctx.shadowColor = e.isCrit ? '#ff0000' : '#ffaa00';
+        ctx.shadowBlur = e.isCrit ? 8 : 4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ts * 0.6, angle - 0.8, angle + 0.8);
+        ctx.stroke();
+        // Second arc (cross-slash for crit)
+        if (e.isCrit) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, ts * 0.8, angle - 0.5, angle + 0.5);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+        // Damage number
+        if (e.frame < 8) {
+          ctx.save();
+          ctx.globalAlpha = 1 - e.frame / 8;
+          ctx.fillStyle = e.isCrit ? '#ff2222' : '#ffdd44';
+          ctx.font = `bold ${e.isCrit ? 16 : 12}px "Microsoft YaHei", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((e.isCrit ? '💥' : '') + e.damage, cx, cy - ts * 0.7 - e.frame * 1.5);
+          ctx.restore();
+        }
+        break;
+
+      case 'particle':
+        // Small flying particles
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.fillStyle = e.color;
+        ctx.shadowColor = e.color;
+        ctx.shadowBlur = 4;
+        const px = cx + e.dx * progress * ts / 2;
+        const py = cy + e.dy * progress * ts / 2;
+        const size = Math.max(1, (1 - progress) * 4);
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+        break;
+    }
+  }
 }
 
 // =============================================
@@ -458,6 +621,7 @@ function attackEntity(attacker, defender, isPlayer) {
   if (isPlayer && state.powerStrike) {
     damage *= HEROES.guanyu.ability.value;
     state.powerStrike = false;
+    isCrit = true; // force crit visuals for power strike
     addMessage(`武圣之力！${HEROES.guanyu.name}打出致命一击！`, 'critical');
   }
 
@@ -467,6 +631,13 @@ function attackEntity(attacker, defender, isPlayer) {
   } else {
     playerTakeDamage(damage);
   }
+
+  // Spawn hit effects
+  const fromX = isPlayer ? state.playerX : attacker._x;
+  const fromY = isPlayer ? state.playerY : attacker._y;
+  const toX = isPlayer ? defender._x : state.playerX;
+  const toY = isPlayer ? defender._y : state.playerY;
+  spawnSlashEffect(fromX, fromY, toX, toY, damage, isCrit);
 
   const atkName = isPlayer ? state.hero.name : attacker.name;
   const defName = isPlayer ? defender.name : state.hero.name;
@@ -556,6 +727,7 @@ function useAbility() {
       const stats = getPlayerStats();
       const healAmount = Math.floor(stats.maxHp * ability.value);
       playerHeal(healAmount);
+      spawnHealEffect(state.playerX, state.playerY);
       addMessage(`✨ 【${ability.name}】恢复 ${healAmount} 点生命值！`, 'ability');
       break;
     }
@@ -576,12 +748,14 @@ function useAbility() {
     case 'aoe': {
       const range = ability.range;
       let hitCount = 0;
+      spawnAbilityEffect(state.playerX, state.playerY, '#cc88ff');
       for (const enemy of state.enemies) {
         if (dist(state.playerX, state.playerY, enemy._x, enemy._y) <= range) {
           const damage = Math.floor(getPlayerStats().atk * ability.value) - (enemy._def || enemy.def);
           const actualDmg = Math.max(1, damage);
           enemy._hp -= actualDmg;
           hitCount++;
+          spawnSlashEffect(state.playerX, state.playerY, enemy._x, enemy._y, actualDmg, false);
           addMessage(`【${ability.name}】对${enemy.name}造成 ${actualDmg} 点伤害！`, 'ability');
           if (enemy._hp <= 0) {
             enemyDefeated(enemy);
@@ -789,7 +963,7 @@ function playerMove(dx, dy) {
 
   // Check for stairs
   if (state.map[ny][nx] === TILE.STAIRS) {
-    addMessage('🔽 发现通往下一层的楼梯！按 G 进入下一层', 'info');
+    addMessage('🔽 发现通往下一层的楼梯！按 F 进入下一层', 'info');
   }
 
   endTurn();
@@ -1015,6 +1189,10 @@ function render() {
   vx = clamp(vx, 0, CFG.MAP_W - vw);
   vy = clamp(vy, 0, CFG.MAP_H - vh);
 
+  // Store for effects rendering
+  state.vx = vx;
+  state.vy = vy;
+
   canvas.width = vw * ts;
   canvas.height = vh * ts;
 
@@ -1172,6 +1350,9 @@ function render() {
       }
     }
   }
+
+  // Draw combat effects (on top of everything)
+  drawEffects(ctx, ts, vx, vy, vw, vh);
 
   // Draw minimap
   drawMinimap();
@@ -1402,7 +1583,7 @@ function handleKeyDown(e) {
       render();
       updateUI();
       break;
-    case 'g': case 'G':
+    case 'f': case 'F':
       e.preventDefault();
       if (state.map[state.playerY] && state.map[state.playerY][state.playerX] === TILE.STAIRS) {
         descendStairs();
@@ -1412,7 +1593,7 @@ function handleKeyDown(e) {
       render();
       updateUI();
       break;
-    case 'i': case 'I':
+    case 'b': case 'B':
       e.preventDefault();
       toggleInventory();
       break;
@@ -1475,7 +1656,7 @@ function startGame(heroKey) {
   updateUI();
 
   addMessage(`⚔️ ${state.hero.name}（${state.hero.title}）踏上了征程！`, 'info');
-  addMessage('WASD/方向键移动 | E技能 | G拾取/下楼 | I背包 | 空格等待', 'info');
+  addMessage('WASD/方向键移动 | E技能 | F拾取/下楼 | B背包 | 空格等待', 'info');
 }
 
 function resetToMenu() {
