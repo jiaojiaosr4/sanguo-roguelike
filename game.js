@@ -994,7 +994,7 @@ function playerMove(dx, dy) {
   // Enemy blocks movement — press J to attack
   const enemy = state.enemies.find(e => e._x === nx && e._y === ny);
   if (enemy) {
-    addMessage(`⚠️ ${enemy.name}挡住了去路！按J攻击`, 'combat');
+    addMessage(`⚠️ ${enemy.name}挡住了去路！点击敌人攻击`, 'combat');
     return;
   }
 
@@ -1011,37 +1011,6 @@ function playerMove(dx, dy) {
   // Check for stairs
   if (state.map[ny][nx] === TILE.STAIRS) {
     addMessage('🔽 发现通往下一层的楼梯！按 F 进入下一层', 'info');
-  }
-
-  endTurn();
-}
-
-// J key: attack adjacent enemy
-function playerAttackAdjacent() {
-  if (state.gameOver) return;
-
-  const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-  const px = state.playerX;
-  const py = state.playerY;
-
-  let attacked = false;
-  for (const [dx, dy] of dirs) {
-    const nx = px + dx;
-    const ny = py + dy;
-    const enemy = state.enemies.find(e => e._x === nx && e._y === ny);
-    if (enemy) {
-      playerAttack(enemy);
-      attacked = true;
-      if (enemy._hp > 0) {
-        enemyAttack(enemy);
-      }
-      break;
-    }
-  }
-
-  if (!attacked) {
-    addMessage('周围没有敌人可以攻击', 'info');
-    return;
   }
 
   endTurn();
@@ -2254,7 +2223,7 @@ function init() {
   // Keyboard input
   window.addEventListener('keydown', handleKeyDown);
 
-  // Mouse click — attack adjacent enemy
+  // Mouse click — attack in clicked direction
   state.canvas.addEventListener('click', (e) => {
     if (state.gameOver) return;
     const rect = state.canvas.getBoundingClientRect();
@@ -2265,17 +2234,27 @@ function init() {
     const ts = CFG.TILE_SIZE;
     const mx = Math.floor(cx / ts) + state.vx;
     const my = Math.floor(cy / ts) + state.vy;
-    // Must be adjacent to player
-    if (dist(state.playerX, state.playerY, mx, my) !== 1) return;
-    // Must have an enemy there
-    const enemy = state.enemies.find(en => en._x === mx && en._y === my);
-    if (!enemy) return;
-    // Attack!
-    playerAttack(enemy);
-    if (enemy._hp > 0) {
-      enemyAttack(enemy);
+    const d = dist(state.playerX, state.playerY, mx, my);
+
+    // Check if there's an enemy within attack range (adjacent) at the clicked tile
+    let enemy = null;
+    if (d === 1) {
+      enemy = state.enemies.find(en => en._x === mx && en._y === my);
     }
-    endTurn();
+
+    if (enemy) {
+      // Hit!
+      playerAttack(enemy);
+      if (enemy._hp > 0) {
+        enemyAttack(enemy);
+      }
+    } else {
+      // Swing and miss — still consumes turn
+      addMessage('⚔️ 挥空！', 'combat');
+      // Spawn a small miss effect at the clicked tile
+      spawnEffect(mx, my, 'flash', { color: '#ffffff', maxFrames: 8 });
+      endTurn();
+    }
   });
 
   // Hero selection click handlers
