@@ -625,14 +625,25 @@ function playerFullHeal() {
 // COMBAT SYSTEM
 // =============================================
 function attackEntity(attacker, defender, isPlayer) {
-  const atk = isPlayer ? getPlayerStats().atk : attacker.atk;
-  const def = isPlayer ? defender.def : (defender._def || defender.def);
+  let atk, def, atkSpd, defSpd;
+
+  if (isPlayer) {
+    // Player attacks enemy
+    atk = getPlayerStats().atk;
+    atkSpd = getPlayerStats().spd;
+    def = defender._def != null ? defender._def : defender.def;
+    defSpd = defender._spd != null ? defender._spd : defender.spd;
+  } else {
+    // Enemy attacks player
+    atk = attacker.atk;
+    atkSpd = attacker.spd;
+    def = getPlayerStats().def;
+    defSpd = getPlayerStats().spd;
+  }
 
   let damage = Math.max(1, atk - def);
 
   // Critical hit
-  const atkSpd = isPlayer ? getPlayerStats().spd : attacker.spd;
-  const defSpd = isPlayer ? defender.spd : (defender._spd || defender.spd);
   const critChance = 0.1 + Math.max(0, (atkSpd - defSpd) * 0.03);
   let isCrit = false;
 
@@ -645,7 +656,7 @@ function attackEntity(attacker, defender, isPlayer) {
   if (isPlayer && state.powerStrike) {
     damage *= HEROES.guanyu.ability.value;
     state.powerStrike = false;
-    isCrit = true; // force crit visuals for power strike
+    isCrit = true;
     addMessage(`武圣之力！${HEROES.guanyu.name}打出致命一击！`, 'critical');
   }
 
@@ -894,7 +905,7 @@ function useInventoryItem(index) {
 // =============================================
 function enemyTurn() {
   for (const enemy of state.enemies) {
-    if (state.gameOver) return;
+    if (state.gameOver) break;
 
     const ex = enemy._x;
     const ey = enemy._y;
